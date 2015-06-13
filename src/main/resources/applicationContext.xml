@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:jdbc="http://www.springframework.org/schema/jdbc"  
+	xmlns:jee="http://www.springframework.org/schema/jee" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+		http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-4.0.xsd
+		http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-4.0.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd"
+	default-lazy-init="true">
+
+	<context:property-placeholder ignore-unresolvable="true" location="classpath*:/config.properties" />
+		
+	<!-- 使用annotation定义事务 -->
+	<tx:annotation-driven transaction-manager="transactionManager" proxy-target-class="true" />
+	
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+	
+	<!-- 数据源配置, 使用Tomcat JDBC连接池 -->
+	<bean id="dataSource" class="org.apache.tomcat.jdbc.pool.DataSource" destroy-method="close">
+		<!-- Connection Info -->
+		<property name="driverClassName" value="${jdbc.driver}" />
+		<property name="url" value="${jdbc.url}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+		<!-- Connection Pooling Info -->
+		<property name="maxActive" value="${jdbc.pool.maxActive}" />
+		<property name="maxIdle" value="${jdbc.pool.maxIdle}" />
+		<property name="minIdle" value="0" />
+		<property name="defaultAutoCommit" value="false" />
+	</bean>
+	
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate" p:dataSource-ref="dataSource"/>
+	
+	<!-- sharding orm -->
+	<bean id="orm" class="com.sharding.base.Orm">
+        <property name="entityPackageList">
+            <list>
+                <value>com.sharding.entity</value>
+            </list>
+        </property>
+    </bean>
+    <bean id="sqlPageBuilder4MySQL" class="com.sharding.base.SqlPageBuilder4MySQL"/>
+    <bean id="idGenerator" class="com.sharding.base.IdGenerator" p:KGTableName="sd_keygen"/>
+    <bean id="dao" class="com.sharding.base.Dao"
+    	p:sqlPageBuilder-ref="sqlPageBuilder4MySQL"
+        p:jdbcTemplate-ref="jdbcTemplate"
+        p:idGenerator-ref="idGenerator"
+        p:orm-ref="orm"/>
+    
+	<context:component-scan base-package="com.sharding.respository" />
+	<context:component-scan base-package="com.sharding.service" />
+	<context:component-scan base-package="com.sharding.entity"/>
+
+</beans>
